@@ -12,8 +12,6 @@ class DataLoaderBase(object):
     def __init__(self, args, device, logging):
         self.args = args
         self.data_name = args.data_name
-        self.use_pretrain = args.use_pretrain
-        self.pretrain_embedding_dir = args.pretrain_embedding_dir
         self.device = device
 
         self.data_dir = os.path.join(args.data_dir, args.data_name)
@@ -21,10 +19,8 @@ class DataLoaderBase(object):
 
         self.entity_dim = args.embed_dim
         self.relation_dim = args.relation_dim
-        self.total_ent = args.total_ent
-        self.total_rel = args.total_rel
 
-        self.pre_training_neg_rate = args.pre_training_neg_rate
+        self.training_neg_rate = args.training_neg_rate
 
 
     def load_graph(self, filename):
@@ -67,7 +63,7 @@ class DataLoaderBase(object):
 
     def generate_kg_batch(self, kg_dict, batch_size, highest_neg_idx):
         exist_heads = kg_dict.keys()
-        batch_size = int(batch_size / self.pre_training_neg_rate)
+        batch_size = int(batch_size / self.training_neg_rate)
 
         if batch_size <= len(exist_heads):
             batch_head = random.sample(exist_heads, batch_size)
@@ -86,13 +82,13 @@ class DataLoaderBase(object):
 
             # Generate the negative samples
             neg_tail = self.sample_neg_triples_for_head(
-                kg_dict, h, relation[0], self.pre_training_neg_rate, highest_neg_idx)
+                kg_dict, h, relation[0], self.training_neg_rate, highest_neg_idx)
 
             batch_neg_tail += neg_tail
 
-        batch_head = self.generate_batch_by_neg_rate(batch_head, self.pre_training_neg_rate)
-        batch_relation = self.generate_batch_by_neg_rate(batch_relation, self.pre_training_neg_rate)
-        batch_pos_tail = self.generate_batch_by_neg_rate(batch_pos_tail, self.pre_training_neg_rate)
+        batch_head = self.generate_batch_by_neg_rate(batch_head, self.training_neg_rate)
+        batch_relation = self.generate_batch_by_neg_rate(batch_relation, self.training_neg_rate)
+        batch_pos_tail = self.generate_batch_by_neg_rate(batch_pos_tail, self.training_neg_rate)
 
         batch_head = torch.LongTensor(batch_head)
         batch_relation = torch.LongTensor(batch_relation)
@@ -119,7 +115,7 @@ class DataLoader(DataLoaderBase):
 
     def __init__(self, args, device, logging):
         super().__init__(args, device, logging)
-        self.pre_training_batch_size = int(args.pre_training_batch_size / self.pre_training_neg_rate)
+        self.training_batch_size = int(args.training_batch_size / self.training_neg_rate)
 
         graph_data = self.load_graph(self.kg_file)
         self.construct_data(graph_data)

@@ -1,11 +1,12 @@
 import torch
+import argparse
 import numpy as np
 import random
 from dataloader import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
 from time import time
-from model import TransR
+from model import *
 import sys
 from argument import parse_args
 
@@ -28,7 +29,19 @@ def train(args):
     data = DataLoader(args, device, logging)
 
     # construct model & optimizer
-    model = TransR(args, data.n_entities, data.n_relations, device)
+    if args.model == 'transe':
+        model = TransE(args, data.n_entities, data.n_relations, device)
+    elif args.model == 'transh':
+        model = TransH(args, data.n_entities, data.n_relations, device)
+    elif args.model == 'transr':
+        model = TransR(args, data.n_entities, data.n_relations, device)
+    elif args.model == 'rescal':
+        model = RESCAL(args, data.n_entities, data.n_relations, device)
+    elif args.model == 'distmult':
+        model = DistMult(args, data.n_entities, data.n_relations, device)
+    elif args.model == 'complex':
+        model = ComplEx(args, data.n_entities, data.n_relations, device)
+    
 
     print("Device {}".format(device))
     model.to(device)
@@ -48,11 +61,9 @@ def train(args):
     print("Total parameters: {}".format(pytorch_total_params))
 
 
-    # Pre-training model
+    # Train model
     for epoch in range(1, args.n_epoch + 1):
         model.train()
-
-        # pre training
         time3 = time()
         kg_total_loss = 0
 
@@ -112,7 +123,6 @@ def train(args):
     # Logging every epoch
     logging.info("KG loss list {}".format(loss_kg_list))
     logging.info("KG time training {}".format(kg_time_training))
-
 
 def fix_seed(random_seed):
     torch.manual_seed(random_seed)
